@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, LayoutDashboard, LinkIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Bug,
+  FileText,
+  LayoutDashboard,
+  LinkIcon,
+  PackageCheck
+} from "lucide-react";
 import { readDatabase } from "@/src/lib/db";
 import { ProgressBar } from "@/src/components/progress-bar";
 import { OrderStatusBadge } from "@/src/components/badges";
@@ -15,12 +22,26 @@ export default async function HomePage() {
       <div className="home-panel">
         <section className="home-hero">
           <div>
-            <p className="meta-row">毕业设计交付 · 材料下载 · 程序版本 · Bug 反馈</p>
-            <h1>把每个客户的交付材料放进一个专属链接。</h1>
+            <p className="meta-row home-kicker">毕业设计交付 · 用户端门户 · 后台管理</p>
+            <h1>毕业设计交付管理中心</h1>
             <p>
-              后台先新建项目，再上传论文、程序版本和其他资料；客户用链接查看进度、下载文件、
-              按条提交程序问题。程序材料支持 v0.0.1、v0.0.2 这样的版本更新记录。
+              为每个项目生成一个专属客户链接，集中展示程序版本、论文材料、阶段进度和
+              Bug 反馈记录。后台负责维护项目，用户端负责清晰交付。
             </p>
+            <div className="home-feature-grid" aria-label="核心能力">
+              <span>
+                <PackageCheck size={17} />
+                版本交付
+              </span>
+              <span>
+                <FileText size={17} />
+                材料下载
+              </span>
+              <span>
+                <Bug size={17} />
+                反馈闭环
+              </span>
+            </div>
             <div className="hero-actions">
               <Link className="primary-button" href="/admin">
                 <LayoutDashboard size={18} />
@@ -35,7 +56,8 @@ export default async function HomePage() {
             </div>
           </div>
           {sampleOrder ? (
-            <div className="panel">
+            <div className="panel home-preview-card">
+              <p className="meta-row home-preview-label">示例客户页</p>
               <div className="portal-title-row">
                 <div>
                   <strong>{sampleOrder.orderCode}</strong>
@@ -44,8 +66,11 @@ export default async function HomePage() {
                 <OrderStatusBadge status={sampleOrder.status} />
               </div>
               <ProgressBar value={sampleOrder.progress} />
-              <p>示例客户：{sampleOrder.customerName}</p>
-              <p>交付日期：{sampleOrder.dueDate}</p>
+              <div className="home-preview-meta">
+                <span>客户：{sampleOrder.customerName}</span>
+                <span>交付：{sampleOrder.dueDate}</span>
+                <span>进度：{sampleOrder.progress}%</span>
+              </div>
               <Link className="ghost-button" href={`/admin/orders/${sampleOrder.id}`}>
                 打开这个项目
                 <ArrowRight size={17} />

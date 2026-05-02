@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { AlertCircle, Bug, Download, FileText, PackageCheck } from "lucide-react";
+import {
+  AlertCircle,
+  Bug,
+  Download,
+  FileText,
+  PackageCheck,
+  Upload
+} from "lucide-react";
 import { submitFeedbackAction } from "@/src/actions/portal";
 import {
   getLatestProgramVersions,
@@ -64,9 +71,13 @@ export default async function SharePortalPage({
 
   const visibleMaterials = bundle.materials.filter((item) => item.visible);
   const programVersions = getLatestProgramVersions(visibleMaterials);
+  const latestProgram = programVersions[0];
   const progressEntries = bundle.progressEntries.filter(
     (item) => item.visibleToCustomer
   );
+  const openFeedbackCount = bundle.feedbackItems.filter(
+    (item) => item.status !== "fixed" && item.status !== "rejected"
+  ).length;
   const attachmentMap = new Map(
     bundle.feedbackItems.map((feedback) => [
       feedback.id,
@@ -78,9 +89,10 @@ export default async function SharePortalPage({
     <main className="share-page">
       <div className="portal-shell">
         {query.sent ? <div className="sent-banner">反馈已提交，我会在后台处理。</div> : null}
-        <header className="portal-header">
-          <div className="portal-title-row">
+        <header className="portal-header portal-hero">
+          <div className="portal-hero-grid">
             <div>
+              <p className="portal-kicker">客户交付中心</p>
               <div className="meta-row">
                 <span>{bundle.order.orderCode}</span>
                 <OrderStatusBadge status={bundle.order.status} />
@@ -90,17 +102,43 @@ export default async function SharePortalPage({
                 {bundle.order.customerName} · 预计交付 {formatDate(bundle.order.dueDate)}
               </p>
             </div>
-            <strong>{bundle.order.progress}%</strong>
+            <div className="portal-progress-summary">
+              <span>当前完成度</span>
+              <strong>{bundle.order.progress}%</strong>
+            </div>
           </div>
           <ProgressBar value={bundle.order.progress} />
-          {bundle.order.customerNote ? <p>{bundle.order.customerNote}</p> : null}
+          <div className="portal-stats" aria-label="交付概览">
+            <span>
+              最新程序
+              <strong>{latestProgram?.version || "待上传"}</strong>
+            </span>
+            <span>
+              可下载材料
+              <strong>{visibleMaterials.length}</strong>
+            </span>
+            <span>
+              进度更新
+              <strong>{progressEntries.length}</strong>
+            </span>
+            <span>
+              待处理反馈
+              <strong>{openFeedbackCount}</strong>
+            </span>
+          </div>
+          {bundle.order.customerNote ? (
+            <p className="customer-note">{bundle.order.customerNote}</p>
+          ) : null}
         </header>
 
         <div className="portal-layout">
           <div>
-            <section className="panel">
-              <div className="portal-title-row">
-                <h2>程序版本</h2>
+            <section className="panel portal-section">
+              <div className="section-heading">
+                <div>
+                  <span>最新版本</span>
+                  <h2>程序版本</h2>
+                </div>
                 <PackageCheck size={22} />
               </div>
               <div className="item-list">
@@ -120,9 +158,12 @@ export default async function SharePortalPage({
                   (item) => item.category === category
                 );
                 return (
-                  <section className="panel" key={category}>
-                    <div className="portal-title-row">
-                      <h2>{materialCategoryLabels[category]}</h2>
+                  <section className="panel portal-section" key={category}>
+                    <div className="section-heading">
+                      <div>
+                        <span>交付文件</span>
+                        <h2>{materialCategoryLabels[category]}</h2>
+                      </div>
                       <FileText size={22} />
                     </div>
                     <div className="item-list">
@@ -141,8 +182,13 @@ export default async function SharePortalPage({
                 );
               })}
 
-            <section className="panel">
-              <h2>进度时间线</h2>
+            <section className="panel portal-section">
+              <div className="section-heading">
+                <div>
+                  <span>进度记录</span>
+                  <h2>进度时间线</h2>
+                </div>
+              </div>
               <div className="timeline-list">
                 {progressEntries.map((entry) => (
                   <article className="timeline-item" key={entry.id}>
@@ -154,17 +200,29 @@ export default async function SharePortalPage({
                     <small>{formatDateTime(entry.createdAt)}</small>
                   </article>
                 ))}
+                {!progressEntries.length ? (
+                  <p className="empty-text">暂无可见进度。</p>
+                ) : null}
               </div>
             </section>
           </div>
 
-          <aside>
-            <section className="panel">
-              <div className="portal-title-row">
-                <h2>提交程序 Bug</h2>
+          <aside className="portal-sidebar">
+            <section className="panel portal-section">
+              <div className="section-heading">
+                <div>
+                  <span>问题反馈</span>
+                  <h2>提交程序 Bug</h2>
+                </div>
                 <Bug size={22} />
               </div>
-              <form action={submitFeedbackAction.bind(null, token)}>
+              {query.error ? (
+                <p className="error-text">反馈提交失败，请检查标题、描述和附件后重试。</p>
+              ) : null}
+              <form
+                className="feedback-form"
+                action={submitFeedbackAction.bind(null, token)}
+              >
                 <label>
                   问题标题
                   <input name="title" required placeholder="例如：登录后页面空白" />
@@ -190,12 +248,19 @@ export default async function SharePortalPage({
                 </label>
                 <label>
                   图片或视频
-                  <input
-                    name="attachments"
-                    type="file"
-                    accept="image/*,video/*"
-                    multiple
-                  />
+                  <span className="file-upload-shell">
+                    <input
+                      className="file-input"
+                      name="attachments"
+                      type="file"
+                      accept="image/*,video/*"
+                      multiple
+                    />
+                    <span className="file-upload-control">
+                      <Upload size={17} />
+                      选择截图或录屏
+                    </span>
+                  </span>
                 </label>
                 <SubmitButton className="primary-button" pendingLabel="提交中...">
                   提交反馈
@@ -203,8 +268,13 @@ export default async function SharePortalPage({
               </form>
             </section>
 
-            <section className="panel">
-              <h2>我的反馈记录</h2>
+            <section className="panel portal-section">
+              <div className="section-heading">
+                <div>
+                  <span>反馈记录</span>
+                  <h2>我的反馈记录</h2>
+                </div>
+              </div>
               <div className="feedback-list">
                 {bundle.feedbackItems.map((feedback) => (
                   <article className="feedback-item" key={feedback.id}>
@@ -240,7 +310,7 @@ export default async function SharePortalPage({
                   </article>
                 ))}
                 {!bundle.feedbackItems.length ? (
-                  <p className="empty-text">你提交的问题会按条显示在这里。</p>
+                  <p className="empty-text">暂无反馈记录。</p>
                 ) : null}
               </div>
             </section>
@@ -261,8 +331,8 @@ function MaterialDownloadCard({
   program?: boolean;
 }) {
   return (
-    <article className={`list-item ${program ? "program-card" : ""}`}>
-      <div>
+    <article className={`list-item download-card ${program ? "program-card" : ""}`}>
+      <div className="download-card-body">
         <div className="item-title-row">
           <strong>{material.title}</strong>
           <MaterialCategoryBadge category={material.category} />
@@ -273,11 +343,15 @@ function MaterialDownloadCard({
         {material.releaseNotes ? (
           <p className="release-notes">{material.releaseNotes}</p>
         ) : null}
-        <small>
-          {formatFileSize(material.size)} · {formatDateTime(material.createdAt)}
-        </small>
+        <div className="material-meta">
+          <span>{formatFileSize(material.size)}</span>
+          <span>{formatDateTime(material.createdAt)}</span>
+        </div>
       </div>
-      <Link className="primary-button" href={`/api/files/${material.id}?token=${token}`}>
+      <Link
+        className="primary-button download-button"
+        href={`/api/files/${material.id}?token=${token}`}
+      >
         <Download size={17} />
         下载
       </Link>
