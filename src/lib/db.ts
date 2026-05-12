@@ -502,22 +502,22 @@ function writeSeedFiles() {
   mkdirSync(uploadsDir, { recursive: true });
   writeFileSync(
     path.join(uploadsDir, "seed-thesis-outline.txt"),
-    "论文初稿目录与章节说明示例。\n",
+    "客户上线清单、验收步骤与交付说明示例。\n",
     "utf8"
   );
   writeFileSync(
     path.join(uploadsDir, "seed-program-v001.txt"),
-    "程序版本 v0.0.1：基础登录、材料列表、反馈入口。\n",
+    "版本 v1.0.0：开放客户门户、资料下载和反馈入口。\n",
     "utf8"
   );
   writeFileSync(
     path.join(uploadsDir, "seed-program-v002.txt"),
-    "程序版本 v0.0.2：修复上传空文件提示，优化移动端下载列表。\n",
+    "版本 v1.1.0：优化移动端体验，补充版本说明与反馈状态。\n",
     "utf8"
   );
   writeFileSync(
     path.join(uploadsDir, "seed-other-readme.txt"),
-    "部署说明、数据库说明、运行命令示例。\n",
+    "部署说明、账号分配与运行命令示例。\n",
     "utf8"
   );
 }
@@ -531,8 +531,8 @@ function createSeedDatabase(): Database {
     orders: [
       {
         id: orderId,
-        customerName: "张同学",
-        projectTitle: "基于 Web 的毕业设计材料交付系统",
+        customerName: "华南区域运营团队",
+        projectTitle: "客户交付协作平台升级项目",
         orderCode: makeOrderCode(),
         status: "in_progress",
         progress: 72,
@@ -541,8 +541,8 @@ function createSeedDatabase(): Database {
           .slice(0, 10),
         shareToken: newShareToken(),
         shareEnabled: true,
-        customerNote: "请优先查看最新程序版本，旧版本保留用于对比。",
-        adminNote: "演示项目，可直接体验后台和用户端。",
+        customerNote: "请优先下载当前推荐版本，完成关键流程验证后再反馈结果。",
+        adminNote: "示例项目，重点展示版本交付、客户反馈和处理闭环。",
         createdAt,
         updatedAt: createdAt
       }
@@ -552,12 +552,12 @@ function createSeedDatabase(): Database {
         id: newId(),
         orderId,
         category: "thesis",
-        title: "论文初稿目录",
-        description: "包含章节结构、研究内容和后续补充方向。",
-        originalName: "论文初稿目录.txt",
+        title: "上线验收清单",
+        description: "包含验收范围、关键流程与交付注意事项。",
+        originalName: "上线验收清单.txt",
         storedName: "seed-thesis-outline.txt",
         mimeType: "text/plain",
-        size: 42,
+        size: 53,
         visible: true,
         isLatest: false,
         createdAt,
@@ -567,15 +567,15 @@ function createSeedDatabase(): Database {
         id: newId(),
         orderId,
         category: "program",
-        title: "程序交付包",
-        description: "首个可运行版本。",
-        originalName: "program-v0.0.1.txt",
+        title: "客户门户交付包",
+        description: "首个可运行交付版本。",
+        originalName: "portal-release-v1.0.0.txt",
         storedName: "seed-program-v001.txt",
         mimeType: "text/plain",
-        size: 68,
+        size: 71,
         visible: true,
-        version: "v0.0.1",
-        releaseNotes: "新增基础页面、项目材料列表、Bug 反馈入口。",
+        version: "v1.0.0",
+        releaseNotes: "开放客户门户、资料下载区和基础反馈入口。",
         isLatest: false,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
         updatedAt: createdAt
@@ -584,15 +584,15 @@ function createSeedDatabase(): Database {
         id: newId(),
         orderId,
         category: "program",
-        title: "程序交付包",
+        title: "客户门户交付包",
         description: "当前推荐下载版本。",
-        originalName: "program-v0.0.2.txt",
+        originalName: "portal-release-v1.1.0.txt",
         storedName: "seed-program-v002.txt",
         mimeType: "text/plain",
-        size: 86,
+        size: 79,
         visible: true,
-        version: "v0.0.2",
-        releaseNotes: "修复文件上传提示；优化移动端材料展示；新增反馈状态展示。",
+        version: "v1.1.0",
+        releaseNotes: "优化移动端体验，补充版本说明，并强化反馈状态展示。",
         isLatest: true,
         createdAt,
         updatedAt: createdAt
@@ -601,12 +601,12 @@ function createSeedDatabase(): Database {
         id: newId(),
         orderId,
         category: "other",
-        title: "部署与运行说明",
-        description: "包含本地运行命令和项目结构说明。",
-        originalName: "部署说明.txt",
+        title: "部署与账号说明",
+        description: "包含环境变量、账号分配与运行命令说明。",
+        originalName: "部署与账号说明.txt",
         storedName: "seed-other-readme.txt",
         mimeType: "text/plain",
-        size: 48,
+        size: 52,
         visible: true,
         isLatest: false,
         createdAt,
@@ -617,18 +617,18 @@ function createSeedDatabase(): Database {
       {
         id: newId(),
         orderId,
-        title: "程序 v0.0.2 已发布",
-        content: "已补充反馈状态展示，并修复上传空文件时提示不明显的问题。",
-        stage: "程序更新",
+        title: "版本 v1.1.0 已发布",
+        content: "已补充推荐版本说明、反馈状态展示，并优化移动端客户门户体验。",
+        stage: "版本更新",
         visibleToCustomer: true,
         createdAt
       },
       {
         id: newId(),
         orderId,
-        title: "论文结构完成",
-        content: "论文目录、摘要方向和系统功能章节已经整理完成。",
-        stage: "论文",
+        title: "验收资料已整理",
+        content: "验收清单、部署说明和交付流程已经整理完成，可供客户逐项核验。",
+        stage: "交付准备",
         visibleToCustomer: true,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString()
       }
@@ -641,8 +641,8 @@ function createSeedDatabase(): Database {
         description: "手机上打开时，程序版本列表的按钮比较靠近。",
         severity: "medium",
         status: "fixed",
-        adminReply: "已在 v0.0.2 中调整移动端间距。",
-        fixedVersion: "v0.0.2",
+        adminReply: "已在 v1.1.0 中调整移动端间距，建议重新验证下载流程。",
+        fixedVersion: "v1.1.0",
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
         updatedAt: createdAt
       }

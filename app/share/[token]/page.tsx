@@ -2,11 +2,14 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import {
   AlertCircle,
+  ArrowRight,
   Bug,
+  CheckCircle2,
+  Clock3,
   Download,
   FileText,
-  PackageCheck,
-  Upload
+  FolderKanban,
+  PackageCheck
 } from "lucide-react";
 import { submitFeedbackAction } from "@/src/actions/portal";
 import {
@@ -19,8 +22,7 @@ import {
   formatDate,
   formatDateTime,
   formatFileSize,
-  materialCategoryLabels,
-  severityLabels
+  materialCategoryLabels
 } from "@/src/lib/format";
 import {
   FeedbackStatusBadge,
@@ -28,9 +30,15 @@ import {
   OrderStatusBadge,
   SeverityBadge
 } from "@/src/components/badges";
+import { FeedbackAttachmentCard } from "@/src/components/feedback-attachment-card";
+import { FeedbackFormPanel } from "@/src/components/feedback-form-panel";
 import { ProgressBar } from "@/src/components/progress-bar";
-import { SubmitButton } from "@/src/components/submit-button";
-import type { Material, MaterialCategory } from "@/src/lib/types";
+import type {
+  FeedbackItem,
+  Material,
+  MaterialCategory,
+  OrderStatus
+} from "@/src/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +62,7 @@ export default async function SharePortalPage({
           <div className="portal-header">
             <AlertCircle size={36} />
             <h1>链接不可用</h1>
-            <p>这个交付链接不存在、已关闭或已过期。请联系交付人员确认最新链接。</p>
+            <p>这个客户门户不存在、已关闭或已过期。请联系交付人员获取最新链接。</p>
           </div>
         </section>
       </main>
@@ -75,31 +83,42 @@ export default async function SharePortalPage({
   const progressEntries = bundle.progressEntries.filter(
     (item) => item.visibleToCustomer
   );
-  const openFeedbackCount = bundle.feedbackItems.filter(
+  const openFeedbackItems = bundle.feedbackItems.filter(
     (item) => item.status !== "fixed" && item.status !== "rejected"
-  ).length;
+  );
+  const latestVisibleUpdate = progressEntries[0];
+  const latestCustomerTouch = bundle.accessLogs[0];
   const attachmentMap = new Map(
     bundle.feedbackItems.map((feedback) => [
       feedback.id,
       bundle.feedbackAttachments.filter((item) => item.feedbackId === feedback.id)
     ])
   );
+  const fixedInLatest = latestProgram?.version
+    ? bundle.feedbackItems.filter((item) => item.fixedVersion === latestProgram.version).length
+    : 0;
+  const customerActions = buildCustomerActions({
+    latestProgramVersion: latestProgram?.version,
+    latestUpdateTitle: latestVisibleUpdate?.title,
+    openFeedbackCount: openFeedbackItems.length,
+    status: bundle.order.status
+  });
 
   return (
     <main className="share-page">
       <div className="portal-shell">
-        {query.sent ? <div className="sent-banner">反馈已提交，我会在后台处理。</div> : null}
+        {query.sent ? <div className="sent-banner">反馈已提交，交付团队会继续跟进。</div> : null}
         <header className="portal-header portal-hero">
           <div className="portal-hero-grid">
             <div>
-              <p className="portal-kicker">客户交付中心</p>
+              <p className="portal-kicker">客户交付工作台</p>
               <div className="meta-row">
                 <span>{bundle.order.orderCode}</span>
                 <OrderStatusBadge status={bundle.order.status} />
               </div>
               <h1>{bundle.order.projectTitle}</h1>
               <p>
-                {bundle.order.customerName} · 预计交付 {formatDate(bundle.order.dueDate)}
+                {bundle.order.customerName} · 当前交付节点 {formatDate(bundle.order.dueDate)}
               </p>
             </div>
             <div className="portal-progress-summary">
@@ -110,20 +129,20 @@ export default async function SharePortalPage({
           <ProgressBar value={bundle.order.progress} />
           <div className="portal-stats" aria-label="交付概览">
             <span>
-              最新程序
+              当前推荐版本
               <strong>{latestProgram?.version || "待上传"}</strong>
             </span>
             <span>
-              可下载材料
+              最新更新
+              <strong>{latestVisibleUpdate ? formatDate(latestVisibleUpdate.createdAt) : "暂无"}</strong>
+            </span>
+            <span>
+              待处理问题
+              <strong>{openFeedbackItems.length}</strong>
+            </span>
+            <span>
+              可下载资料
               <strong>{visibleMaterials.length}</strong>
-            </span>
-            <span>
-              进度更新
-              <strong>{progressEntries.length}</strong>
-            </span>
-            <span>
-              待处理反馈
-              <strong>{openFeedbackCount}</strong>
             </span>
           </div>
           {bundle.order.customerNote ? (
@@ -131,22 +150,107 @@ export default async function SharePortalPage({
           ) : null}
         </header>
 
+        <section className="panel portal-section delivery-focus-panel">
+          <div className="delivery-focus-grid">
+            <div className="delivery-hero-card">
+              <div className="section-heading">
+                <div>
+                  <span>推荐交付</span>
+                  <h2>当前建议你优先查看这个版本</h2>
+                </div>
+                <PackageCheck size={22} />
+              </div>
+              {latestProgram ? (
+                <>
+                  <div className="delivery-version-row">
+                    <div>
+                      <strong className="delivery-version">{latestProgram.version || "未命名版本"}</strong>
+                      <p className="delivery-version-copy">
+                        {latestProgram.description || "当前推荐下载版本。"}
+                      </p>
+                    </div>
+                    <Link
+                      className="primary-button"
+                      href={`/api/files/${latestProgram.id}?token=${token}`}
+                    >
+                      <Download size={17} />
+                      下载推荐版本
+                    </Link>
+                  </div>
+                  {latestProgram.releaseNotes ? (
+                    <div className="release-spotlight">
+                      <span>本次更新内容</span>
+                      <p>{latestProgram.releaseNotes}</p>
+                    </div>
+                  ) : null}
+                  <div className="focus-meta-grid">
+                    <span>
+                      发布时间
+                      <strong>{formatDateTime(latestProgram.createdAt)}</strong>
+                    </span>
+                    <span>
+                      文件大小
+                      <strong>{formatFileSize(latestProgram.size)}</strong>
+                    </span>
+                    <span>
+                      关联修复
+                      <strong>{fixedInLatest} 项</strong>
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="empty-text">交付团队还没有上传推荐版本。</p>
+              )}
+            </div>
+
+            <div className="delivery-actions-card">
+              <div className="section-heading">
+                <div>
+                  <span>你现在可以做什么</span>
+                  <h2>下一步动作</h2>
+                </div>
+                <CheckCircle2 size={22} />
+              </div>
+              <div className="action-list">
+                {customerActions.map((action) => (
+                  <article className="action-item" key={action.title}>
+                    <strong>{action.title}</strong>
+                    <p>{action.description}</p>
+                  </article>
+                ))}
+              </div>
+              <div className="focus-meta-grid slim">
+                <span>
+                  最新动态
+                  <strong>{latestVisibleUpdate?.title || "暂无更新"}</strong>
+                </span>
+                <span>
+                  最近记录
+                  <strong>
+                    {latestCustomerTouch ? formatDateTime(latestCustomerTouch.createdAt) : "首次访问"}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div className="portal-layout">
           <div>
             <section className="panel portal-section">
               <div className="section-heading">
                 <div>
-                  <span>最新版本</span>
-                  <h2>程序版本</h2>
+                  <span>交付资料</span>
+                  <h2>版本与附件</h2>
                 </div>
-                <PackageCheck size={22} />
+                <FolderKanban size={22} />
               </div>
               <div className="item-list">
                 {programVersions.map((item) => (
                   <MaterialDownloadCard key={item.id} material={item} token={token} program />
                 ))}
                 {!programVersions.length ? (
-                  <p className="empty-text">暂无程序版本。</p>
+                  <p className="empty-text">暂无可下载版本。</p>
                 ) : null}
               </div>
             </section>
@@ -161,7 +265,7 @@ export default async function SharePortalPage({
                   <section className="panel portal-section" key={category}>
                     <div className="section-heading">
                       <div>
-                        <span>交付文件</span>
+                        <span>补充资料</span>
                         <h2>{materialCategoryLabels[category]}</h2>
                       </div>
                       <FileText size={22} />
@@ -175,7 +279,7 @@ export default async function SharePortalPage({
                         />
                       ))}
                       {!items.length ? (
-                        <p className="empty-text">这个分类暂时没有可下载材料。</p>
+                        <p className="empty-text">这个分类暂时没有资料。</p>
                       ) : null}
                     </div>
                   </section>
@@ -185,9 +289,10 @@ export default async function SharePortalPage({
             <section className="panel portal-section">
               <div className="section-heading">
                 <div>
-                  <span>进度记录</span>
-                  <h2>进度时间线</h2>
+                  <span>交付动态</span>
+                  <h2>最近更新与推进</h2>
                 </div>
+                <Clock3 size={22} />
               </div>
               <div className="timeline-list">
                 {progressEntries.map((entry) => (
@@ -201,7 +306,7 @@ export default async function SharePortalPage({
                   </article>
                 ))}
                 {!progressEntries.length ? (
-                  <p className="empty-text">暂无可见进度。</p>
+                  <p className="empty-text">暂无可见更新。</p>
                 ) : null}
               </div>
             </section>
@@ -211,106 +316,69 @@ export default async function SharePortalPage({
             <section className="panel portal-section">
               <div className="section-heading">
                 <div>
-                  <span>问题反馈</span>
-                  <h2>提交程序 Bug</h2>
+                  <span>问题协作</span>
+                  <h2>提交问题或验收反馈</h2>
                 </div>
                 <Bug size={22} />
               </div>
-              {query.error ? (
-                <p className="error-text">反馈提交失败，请检查标题、描述和附件后重试。</p>
-              ) : null}
-              <form
-                className="feedback-form"
+              <FeedbackFormPanel
                 action={submitFeedbackAction.bind(null, token)}
-              >
-                <label>
-                  问题标题
-                  <input name="title" required placeholder="例如：登录后页面空白" />
-                </label>
-                <label>
-                  严重程度
-                  <select name="severity" defaultValue="medium">
-                    {Object.entries(severityLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  问题描述
-                  <textarea
-                    name="description"
-                    rows={5}
-                    required
-                    placeholder="尽量写清楚出现步骤、期望效果、实际效果。"
-                  />
-                </label>
-                <label>
-                  图片或视频
-                  <span className="file-upload-shell">
-                    <input
-                      className="file-input"
-                      name="attachments"
-                      type="file"
-                      accept="image/*,video/*"
-                      multiple
-                    />
-                    <span className="file-upload-control">
-                      <Upload size={17} />
-                      选择截图或录屏
-                    </span>
-                  </span>
-                </label>
-                <SubmitButton className="primary-button" pendingLabel="提交中...">
-                  提交反馈
-                </SubmitButton>
-              </form>
+                hasError={Boolean(query.error)}
+              />
             </section>
 
             <section className="panel portal-section">
               <div className="section-heading">
                 <div>
-                  <span>反馈记录</span>
-                  <h2>我的反馈记录</h2>
+                  <span>处理记录</span>
+                  <h2>反馈跟进状态</h2>
                 </div>
               </div>
               <div className="feedback-list">
-                {bundle.feedbackItems.map((feedback) => (
-                  <article className="feedback-item" key={feedback.id}>
-                    <div className="item-title-row">
-                      <strong>{feedback.title}</strong>
-                      <FeedbackStatusBadge status={feedback.status} />
-                      <SeverityBadge severity={feedback.severity} />
-                    </div>
-                    <p>{feedback.description}</p>
-                    {feedback.adminReply ? (
-                      <p className="release-notes">回复：{feedback.adminReply}</p>
-                    ) : null}
-                    {feedback.fixedVersion ? (
-                      <p>
-                        已关联修复版本：
-                        <span className="version-pill">{feedback.fixedVersion}</span>
-                      </p>
-                    ) : null}
-                    {(attachmentMap.get(feedback.id) || []).map((attachment) => (
-                      <p key={attachment.id}>
-                        <Link
-                          className="ghost-button"
-                          href={`/api/attachments/${attachment.id}?token=${token}`}
-                        >
-                          附件：{attachment.originalName}
-                        </Link>
-                      </p>
-                    ))}
-                    <small>
-                      {feedbackStatusLabels[feedback.status]} ·{" "}
-                      {formatDateTime(feedback.updatedAt)}
-                    </small>
-                  </article>
-                ))}
+                {bundle.feedbackItems.map((feedback) => {
+                  const statusCopy = getCustomerFeedbackCopy(feedback);
+                  const attachments = attachmentMap.get(feedback.id) || [];
+
+                  return (
+                    <article className="feedback-item" key={feedback.id}>
+                      <div className="item-title-row">
+                        <strong>{feedback.title}</strong>
+                        <FeedbackStatusBadge status={feedback.status} />
+                        <SeverityBadge severity={feedback.severity} />
+                      </div>
+                      <p>{feedback.description}</p>
+                      <div className="feedback-callout">
+                        <span>{statusCopy.title}</span>
+                        <p>{statusCopy.description}</p>
+                      </div>
+                      {feedback.adminReply ? (
+                        <p className="release-notes">交付团队回复：{feedback.adminReply}</p>
+                      ) : null}
+                      {feedback.fixedVersion ? (
+                        <p>
+                          已关联修复版本：
+                          <span className="version-pill">{feedback.fixedVersion}</span>
+                        </p>
+                      ) : null}
+                      {attachments.length ? (
+                        <div className="attachment-history-grid">
+                          {attachments.map((attachment) => (
+                            <FeedbackAttachmentCard
+                              attachment={attachment}
+                              href={`/api/attachments/${attachment.id}?token=${token}`}
+                              key={attachment.id}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                      <small>
+                        {feedbackStatusLabels[feedback.status]} · 最后更新 {formatDateTime(feedback.updatedAt)}
+                      </small>
+                    </article>
+                  );
+                })}
                 {!bundle.feedbackItems.length ? (
-                  <p className="empty-text">暂无反馈记录。</p>
+                  <p className="empty-text">还没有反馈记录。</p>
                 ) : null}
               </div>
             </section>
@@ -337,7 +405,7 @@ function MaterialDownloadCard({
           <strong>{material.title}</strong>
           <MaterialCategoryBadge category={material.category} />
           {material.version ? <span className="version-pill">{material.version}</span> : null}
-          {material.isLatest ? <span className="latest-pill">最新版本</span> : null}
+          {material.isLatest ? <span className="latest-pill">推荐版本</span> : null}
         </div>
         <p>{material.description || material.originalName}</p>
         {material.releaseNotes ? (
@@ -357,4 +425,74 @@ function MaterialDownloadCard({
       </Link>
     </article>
   );
+}
+
+function buildCustomerActions({
+  latestProgramVersion,
+  latestUpdateTitle,
+  openFeedbackCount,
+  status
+}: {
+  latestProgramVersion?: string;
+  latestUpdateTitle?: string;
+  openFeedbackCount: number;
+  status: OrderStatus;
+}) {
+  const actions = [];
+
+  if (latestProgramVersion) {
+    actions.push({
+      title: `优先体验 ${latestProgramVersion}`,
+      description: "先下载当前推荐版本，按照业务流程走一遍核心操作。"
+    });
+  }
+
+  actions.push({
+    title: openFeedbackCount
+      ? `继续关注 ${openFeedbackCount} 条待确认问题`
+      : "当前没有待处理问题",
+    description: openFeedbackCount
+      ? "已提交的问题会持续在右侧状态区更新，验证完成后可以补充确认结果。"
+      : "如果这次交付已满足验收，可以把新的体验问题直接提交给交付团队。"
+  });
+
+  actions.push({
+    title: latestUpdateTitle ? `查看“${latestUpdateTitle}”` : "留意后续交付动态",
+    description:
+      status === "waiting_feedback"
+        ? "交付团队正在等你确认结果，建议优先反馈本次版本是否通过。"
+        : "更新区会记录每次变更内容、修复情况和下一步安排。"
+  });
+
+  return actions;
+}
+
+function getCustomerFeedbackCopy(feedback: FeedbackItem) {
+  switch (feedback.status) {
+    case "new":
+      return {
+        title: "已收到",
+        description: "交付团队已看到这条反馈，通常会先确认复现路径和影响范围。"
+      };
+    case "reviewed":
+      return {
+        title: "已受理",
+        description: "问题已经进入跟进队列，后续会继续同步处理进展。"
+      };
+    case "in_progress":
+      return {
+        title: "处理中",
+        description: "交付团队正在修复或排查中，完成后会关联到对应版本。"
+      };
+    case "fixed":
+      return {
+        title: "待你确认",
+        description: "修复版本已经准备好，建议下载关联版本再次验证并确认结果。"
+      };
+    default:
+      return {
+        title: "已关闭",
+        description: "这条反馈暂不继续处理，如有新情况可以补充新的问题描述。"
+      };
+  }
 }

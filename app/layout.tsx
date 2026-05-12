@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "毕业设计交付后台",
-  description: "毕业设计材料交付、版本更新与 Bug 反馈管理系统"
+  title: "客户交付协作平台",
+  description: "用于版本交付、客户反馈、进度同步与交付闭环管理的企业级协作平台"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -13,4 +13,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-

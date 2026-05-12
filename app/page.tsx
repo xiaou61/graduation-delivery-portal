@@ -22,24 +22,24 @@ export default async function HomePage() {
       <div className="home-panel">
         <section className="home-hero">
           <div>
-            <p className="meta-row home-kicker">毕业设计交付 · 用户端门户 · 后台管理</p>
-            <h1>毕业设计交付管理中心</h1>
+            <p className="meta-row home-kicker">客户交付门户 · 版本管理 · 反馈闭环</p>
+            <h1>把版本交付、客户沟通和问题跟进放到同一个工作台里</h1>
             <p>
-              为每个项目生成一个专属客户链接，集中展示程序版本、论文材料、阶段进度和
-              Bug 反馈记录。后台负责维护项目，用户端负责清晰交付。
+              为每个项目生成一个专属客户门户，集中展示推荐版本、交付资料、变更说明、
+              处理进度和反馈记录。后台面向交付团队，客户页面向验收与协作。
             </p>
             <div className="home-feature-grid" aria-label="核心能力">
               <span>
                 <PackageCheck size={17} />
-                版本交付
+                推荐版本
               </span>
               <span>
                 <FileText size={17} />
-                材料下载
+                交付资料
               </span>
               <span>
                 <Bug size={17} />
-                反馈闭环
+                处理闭环
               </span>
             </div>
             <div className="hero-actions">
@@ -68,11 +68,11 @@ export default async function HomePage() {
               <ProgressBar value={sampleOrder.progress} />
               <div className="home-preview-meta">
                 <span>客户：{sampleOrder.customerName}</span>
-                <span>交付：{sampleOrder.dueDate}</span>
-                <span>进度：{sampleOrder.progress}%</span>
+                <span>交付节点：{sampleOrder.dueDate}</span>
+                <span>当前完成度：{sampleOrder.progress}%</span>
               </div>
               <Link className="ghost-button" href={`/admin/orders/${sampleOrder.id}`}>
-                打开这个项目
+                打开项目工作区
                 <ArrowRight size={17} />
               </Link>
             </div>

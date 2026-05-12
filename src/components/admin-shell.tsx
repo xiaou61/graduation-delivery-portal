@@ -9,14 +9,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <Link className="brand" href="/admin">
           <span className="brand-mark">GD</span>
           <span>
-            <strong>交付后台</strong>
-            <small>Graduation Delivery</small>
+            <strong>交付运营台</strong>
+            <small>Delivery Operations</small>
           </span>
         </Link>
         <nav className="side-nav">
           <Link href="/admin">
             <PackageCheck size={18} />
-            项目总览
+            运营看板
           </Link>
           <Link href="/admin/orders/new">
             <Plus size={18} />
@@ -31,7 +31,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </form>
         <div className="sidebar-note">
           <ShieldCheck size={18} />
-          后台操作会写入本地数据文件，适合演示和早期使用。
+          这里聚合项目版本、客户反馈和访问行为，适合交付团队做日常跟进。
         </div>
       </aside>
       <main className="admin-main">{children}</main>

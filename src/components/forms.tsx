@@ -7,12 +7,12 @@ export function OrderFields({ order }: { order?: Order }) {
     <>
       <div className="form-grid">
         <label>
-          客户姓名
+          客户名称
           <input
             name="customerName"
             required
             defaultValue={order?.customerName}
-            placeholder="例如：张同学"
+            placeholder="例如：华南区域运营团队"
           />
         </label>
         <label>
@@ -21,7 +21,7 @@ export function OrderFields({ order }: { order?: Order }) {
             name="projectTitle"
             required
             defaultValue={order?.projectTitle}
-            placeholder="例如：基于 Web 的毕业设计管理系统"
+            placeholder="例如：客户交付协作平台 V1"
           />
         </label>
         <label>
@@ -51,26 +51,26 @@ export function OrderFields({ order }: { order?: Order }) {
         </label>
       </div>
       <label>
-        给客户看的备注
+        客户门户提示
         <textarea
           name="customerNote"
           rows={3}
           defaultValue={order?.customerNote || ""}
-          placeholder="例如：请优先下载最新程序版本。"
+          placeholder="例如：请优先下载当前推荐版本，并在复测完成后回复处理结果。"
         />
       </label>
       <label>
-        后台备注
+        内部备注
         <textarea
           name="adminNote"
           rows={3}
           defaultValue={order?.adminNote || ""}
-          placeholder="这里客户看不到。"
+          placeholder="记录风险、客户偏好或交付提醒，客户不会看到。"
         />
       </label>
       <label className="check-row">
         <input name="shareEnabled" type="checkbox" defaultChecked={order?.shareEnabled ?? true} />
-        启用客户专属链接
+        启用客户门户链接
       </label>
     </>
   );

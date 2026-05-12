@@ -6,23 +6,23 @@ import type {
 } from "@/src/lib/types";
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
-  in_progress: "制作中",
-  waiting_feedback: "等待反馈",
-  delivered: "已交付",
+  in_progress: "开发中",
+  waiting_feedback: "待客户确认",
+  delivered: "已完成交付",
   archived: "已归档"
 };
 
 export const materialCategoryLabels: Record<MaterialCategory, string> = {
-  thesis: "论文文件",
-  program: "程序版本",
-  other: "非论文文件"
+  thesis: "交付文档",
+  program: "可执行版本",
+  other: "其他资料"
 };
 
 export const feedbackStatusLabels: Record<FeedbackStatus, string> = {
-  new: "新反馈",
-  reviewed: "已查看",
+  new: "已收到",
+  reviewed: "已受理",
   in_progress: "处理中",
-  fixed: "已修复",
+  fixed: "待复测",
   rejected: "不处理"
 };
 
@@ -79,4 +79,3 @@ export function makeOrderCode() {
   )}${String(date.getDate()).padStart(2, "0")}`;
   return `GD-${stamp}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
-

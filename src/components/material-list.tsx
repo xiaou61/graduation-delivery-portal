@@ -41,7 +41,7 @@ export function AdminMaterialList({
                       <strong>{item.title}</strong>
                       <MaterialCategoryBadge category={item.category} />
                       {item.version ? <span className="version-pill">{item.version}</span> : null}
-                      {item.isLatest ? <span className="latest-pill">最新</span> : null}
+                      {item.isLatest ? <span className="latest-pill">推荐版本</span> : null}
                       {!item.visible ? <span className="muted-pill">隐藏</span> : null}
                     </div>
                     <p>{item.description || item.originalName}</p>

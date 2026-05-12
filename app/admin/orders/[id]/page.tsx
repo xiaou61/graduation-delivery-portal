@@ -24,6 +24,7 @@ import {
   OrderStatusBadge,
   SeverityBadge
 } from "@/src/components/badges";
+import { FeedbackAttachmentCard } from "@/src/components/feedback-attachment-card";
 import { OrderFields } from "@/src/components/forms";
 import { AdminMaterialList } from "@/src/components/material-list";
 import { ProgressBar } from "@/src/components/progress-bar";
@@ -67,6 +68,10 @@ export default async function OrderDetailPage({
     bundle.order.shareEnabled,
     bundle.order.shareExpiresAt
   );
+  const latestAccess = bundle.accessLogs[0];
+  const feedbackAwaitingCustomer = bundle.feedbackItems.filter(
+    (item) => item.status === "fixed"
+  );
   const attachmentMap = new Map(
     bundle.feedbackItems.map((feedback) => [
       feedback.id,
@@ -84,7 +89,7 @@ export default async function OrderDetailPage({
           </div>
           <h1>{bundle.order.projectTitle}</h1>
           <p>
-            {bundle.order.customerName} · 交付日期 {bundle.order.dueDate}
+            {bundle.order.customerName} · 当前交付节点 {bundle.order.dueDate}
           </p>
         </div>
         <Link className="secondary-button" href={sharePath} target="_blank">
@@ -103,25 +108,25 @@ export default async function OrderDetailPage({
 
       <section className="metrics compact-metrics">
         <SummaryCard
-          label="最新程序"
+          label="推荐版本"
           value={latestProgram?.version || "未上传"}
-          hint={latestProgram?.title || "上传程序包后自动记录版本"}
+          hint={latestProgram?.releaseNotes || latestProgram?.title || "上传版本后在这里突出当前推荐包"}
         />
         <SummaryCard
-          label="客户可见材料"
+          label="客户可见资料"
           value={visibleMaterials.length}
           hint={`共 ${bundle.materials.length} 份材料`}
         />
         <SummaryCard
-          label="待处理反馈"
+          label="待闭环反馈"
           value={openFeedbackItems.length}
-          hint={`${bundle.feedbackItems.length} 条反馈记录`}
+          hint={`${feedbackAwaitingCustomer.length} 条待客户确认`}
           tone={openFeedbackItems.length ? "danger" : "default"}
         />
         <SummaryCard
-          label="客户可见进度"
-          value={visibleProgressEntries.length}
-          hint={lastActivityAt ? `最近 ${formatDateTime(lastActivityAt)}` : "暂无活动"}
+          label="最近客户动作"
+          value={latestAccess ? formatDateTime(latestAccess.createdAt) : "暂无"}
+          hint={lastActivityAt ? `项目最近一次更新 ${formatDateTime(lastActivityAt)}` : "暂无活动"}
           tone="blue"
         />
       </section>
@@ -141,13 +146,13 @@ export default async function OrderDetailPage({
           <section className="panel">
             <div className="portal-title-row">
               <h2>材料与程序版本</h2>
-              <span className="empty-text">按上传时间倒序</span>
+              <span className="empty-text">先上传推荐版本，再补齐说明与其他交付资料</span>
             </div>
             <form action={createMaterialAction.bind(null, bundle.order.id)}>
               <div className="form-grid">
                 <label>
                   材料标题
-                  <input name="title" required placeholder="例如：程序交付包" />
+                  <input name="title" required placeholder="例如：客户门户交付包" />
                 </label>
                 <label>
                   分类
@@ -160,7 +165,7 @@ export default async function OrderDetailPage({
                   </select>
                 </label>
                 <label>
-                  程序版本号
+                  版本号
                   <input name="version" placeholder="留空自动生成 v0.0.x" />
                 </label>
                 <label>
@@ -170,7 +175,7 @@ export default async function OrderDetailPage({
               </div>
               <label>
                 描述
-                <textarea name="description" rows={2} placeholder="这份材料是什么。" />
+                <textarea name="description" rows={2} placeholder="客户打开后会看到的简短说明。" />
               </label>
               <label>
                 版本更新内容
@@ -200,6 +205,7 @@ export default async function OrderDetailPage({
 
           <section className="panel">
             <h2>进度更新</h2>
+            <p className="section-copy">客户门户里会按时间顺序看到这些动态，建议把变更原因和下一步写清楚。</p>
             <form action={createProgressAction.bind(null, bundle.order.id)}>
               <div className="form-grid">
                 <label>
@@ -248,7 +254,10 @@ export default async function OrderDetailPage({
         <aside>
           <section className="panel">
             <div className="portal-title-row">
-              <h2>客户专属链接</h2>
+              <div>
+                <h2>客户门户链接</h2>
+                <p className="section-copy">客户主要在这里下载版本、查看变更说明和提交反馈。</p>
+              </div>
               <form action={regenerateShareTokenAction.bind(null, bundle.order.id)}>
                 <button
                   aria-label="重置客户专属链接"
@@ -270,7 +279,12 @@ export default async function OrderDetailPage({
           </section>
 
           <section className="panel">
-            <h2>Bug 反馈</h2>
+            <div className="portal-title-row">
+              <div>
+                <h2>反馈处置面板</h2>
+                <p className="section-copy">先处理高优先级问题，再把已修复问题挂到具体版本上，等待客户确认结果。</p>
+              </div>
+            </div>
             <div className="feedback-list">
               {bundle.feedbackItems.map((feedback) => (
                 <article className="feedback-item" key={feedback.id}>
@@ -280,17 +294,22 @@ export default async function OrderDetailPage({
                     <SeverityBadge severity={feedback.severity} />
                   </div>
                   <p>{feedback.description}</p>
-                  <small>{formatDateTime(feedback.createdAt)}</small>
-                  {(attachmentMap.get(feedback.id) || []).map((attachment) => (
-                    <p key={attachment.id}>
-                      <Link
-                        className="ghost-button"
-                        href={`/api/attachments/${attachment.id}`}
-                      >
-                        查看附件：{attachment.originalName}
-                      </Link>
-                    </p>
-                  ))}
+                  <div className="ops-meta-row">
+                    <span>提交于 {formatDateTime(feedback.createdAt)}</span>
+                    <span>最近更新 {formatDateTime(feedback.updatedAt)}</span>
+                    <span>附件 {(attachmentMap.get(feedback.id) || []).length} 个</span>
+                  </div>
+                  {(attachmentMap.get(feedback.id) || []).length ? (
+                    <div className="attachment-history-grid">
+                      {(attachmentMap.get(feedback.id) || []).map((attachment) => (
+                        <FeedbackAttachmentCard
+                          attachment={attachment}
+                          href={`/api/attachments/${attachment.id}`}
+                          key={attachment.id}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                   <form
                     action={updateFeedbackAction.bind(
                       null,
@@ -309,7 +328,7 @@ export default async function OrderDetailPage({
                       </select>
                     </label>
                     <label>
-                      修复版本
+                      关联修复版本
                       <input
                         name="fixedVersion"
                         defaultValue={feedback.fixedVersion || ""}
